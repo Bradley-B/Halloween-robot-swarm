@@ -14,14 +14,87 @@
         background: #17131d;
         color: #f5f0e9;
       }
-      main { padding: 2rem; text-align: center; }
+      * { box-sizing: border-box; }
+      main { padding: 2rem; width: min(100%, 42rem); }
       h1 { color: #ff9f43; }
+      form { display: grid; gap: 0.75rem; margin-top: 2rem; }
+      label { font-weight: 600; }
+      input, textarea, button {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #655a70;
+        border-radius: 0.4rem;
+        font: inherit;
+      }
+      input, textarea { background: #251f2e; color: #f5f0e9; }
+      textarea { font-family: monospace; resize: vertical; }
+      button { background: #ff9f43; color: #17131d; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: 0.6; cursor: wait; }
+      :focus-visible { outline: 2px solid #ff9f43; outline-offset: 3px; }
+      .hint { color: #c2b8cb; font-size: 0.9rem; }
+      #status { min-height: 1.5em; }
+      #status[data-state="error"] { color: #ffaaaa; }
+      #status[data-state="success"] { color: #a4e5b4; }
     </style>
   </head>
   <body>
     <main>
       <h1>Halloween Robot Swarm</h1>
-      <p>Your Go server is running!</p>
+      <p>Send a command to your robots.</p>
+      <form id="command-form">
+        <label for="subject">NATS subject</label>
+        <input id="subject" name="subject" value="robots.commands" required
+               autocomplete="off" spellcheck="false" aria-describedby="subject-hint">
+        <span id="subject-hint" class="hint">Use the subject your robots listen to.</span>
+        <label for="message">Command (JSON)</label>
+        <textarea id="message" name="message" rows="9" required spellcheck="false">{
+  "target": "all",
+  "command": "robot.scene",
+  "params": {
+    "scene": "spooky"
+  }
+}</textarea>
+        <button type="submit">Send command</button>
+      </form>
+      <p id="status" role="status" aria-live="polite"></p>
     </main>
+    <script>
+      const form = document.querySelector('#command-form');
+      const status = document.querySelector('#status');
+      const button = form.querySelector('button');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        status.dataset.state = '';
+        let message;
+        try {
+          message = JSON.parse(form.elements.message.value);
+          if (message === null) throw new Error('null message');
+        } catch {
+          status.dataset.state = 'error';
+          status.textContent = 'Enter a valid, non-null JSON command.';
+          return;
+        }
+
+        button.disabled = true;
+        status.textContent = 'Sending…';
+        try {
+          const response = await fetch('/api/commands', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject: form.elements.subject.value.trim(), message })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Could not publish the command.');
+          status.dataset.state = 'success';
+          status.textContent = `Published to ${result.subject}.`;
+        } catch (error) {
+          status.dataset.state = 'error';
+          status.textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
   </body>
 </html>

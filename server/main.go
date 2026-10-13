@@ -13,6 +13,7 @@ import (
 	"time"
 
 	natsserver "github.com/nats-io/nats-server/v2/server"
+	natsclient "github.com/nats-io/nats.go"
 )
 
 //go:embed index.html
@@ -37,19 +38,16 @@ func run(ctx context.Context) error {
 	}()
 	log.Printf("NATS server running at %s", nats.ClientURL())
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(indexHTML)
-	})
+	publisher, err := natsclient.Connect(nats.ClientURL(),
+		natsclient.InProcessServer(nats), natsclient.Name("web-command-publisher"), natsclient.NoReconnect())
+	if err != nil {
+		return fmt.Errorf("connect command publisher: %w", err)
+	}
+	defer publisher.Close()
 
 	server := &http.Server{
 		Addr:              "localhost:8095",
-		Handler:           mux,
+		Handler:           newHandler(publisher),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
