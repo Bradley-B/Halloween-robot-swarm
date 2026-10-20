@@ -7,6 +7,7 @@
 // there's a lot of other stuff going on.
 
 #include <Adafruit_IS31FL3741.h>
+#include "matrix.h"
 
 Adafruit_IS31FL3741_QT_buffered ledmatrix;
 // If colors appear wrong on matrix, try invoking constructor like so:
@@ -16,7 +17,7 @@ Adafruit_IS31FL3741_QT_buffered ledmatrix;
 TwoWire *i2c = &Wire; // e.g. change this to &Wire1 for QT Py RP2040
 
 void matrixSetup() {
-  Serial.begin(115200);
+  Serial.begin(9600); //115200
   Serial.println("Adafruit QT RGB Matrix Simple RGB Swirl Test");
 
   if (! ledmatrix.begin(IS3741_ADDR_DEFAULT, i2c)) {
@@ -32,7 +33,7 @@ void matrixSetup() {
 
   // Set brightness to max and bring controller out of shutdown state
   ledmatrix.setLEDscaling(0xFF);
-  ledmatrix.setGlobalCurrent(0xFF);
+  ledmatrix.setGlobalCurrent(0x01); // 0xFF
   Serial.print("Global current set to: ");
   Serial.println(ledmatrix.getGlobalCurrent());
   ledmatrix.enable(true); // bring out of shutdown
@@ -55,5 +56,20 @@ void matrixLoop() {
 
   hue_offset += 256;
 
-  ledmatrix.setGlobalCurrent(hue_offset / 256); // Demonstrate global current
+  // ledmatrix.setGlobalCurrent(hue_offset / 256); // Demonstrate global current
+}
+
+void setMonoFrame(MonoFrame *frame) {
+  ledmatrix.fillScreen(0);
+  uint32_t packedColor = ledmatrix.color565(frame->colorR, frame->colorG, frame->colorB);
+  ledmatrix.drawBitmap(0, 0, frame->bitmap, 13, 9, packedColor);
+  ledmatrix.show();
+}
+
+void writeLetter(const char *letter) {
+  ledmatrix.fill(0);
+  ledmatrix.setCursor(0, 0);
+  ledmatrix.setTextColor(ledmatrix.color565(0, 0, 255));
+  ledmatrix.print(letter);
+  ledmatrix.show();
 }

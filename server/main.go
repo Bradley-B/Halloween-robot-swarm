@@ -46,7 +46,7 @@ func run(ctx context.Context) error {
 	defer publisher.Close()
 
 	server := &http.Server{
-		Addr:              "localhost:8095",
+		Addr:              "0.0.0.0:8095",
 		Handler:           newHandler(publisher),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -60,7 +60,7 @@ func run(ctx context.Context) error {
 	go func() {
 		errorsCh <- server.Serve(listener)
 	}()
-	log.Println("HTTP server running at http://localhost:8095")
+	log.Println("HTTP server running at http://0.0.0.0:8095")
 
 	select {
 	case err := <-errorsCh:
@@ -79,7 +79,7 @@ func run(ctx context.Context) error {
 func startNATS(port int) (*natsserver.Server, error) {
 	nats, err := natsserver.NewServer(&natsserver.Options{
 		ServerName: "halloween-robot-swarm",
-		Host:       "127.0.0.1",
+		Host:       "0.0.0.0",
 		Port:       port,
 		NoSigs:     true,
 	})
