@@ -3,5 +3,5 @@
 void matrixSetup();
 void matrixLoop();
 
-void setMonoFrame(MonoFrame *frame);
-void writeLetter(const char *letter);
+void setMonoFrameAll(MonoFrame *frame);
+void writeLetterAll(const char *letter);
