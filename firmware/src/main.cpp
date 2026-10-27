@@ -45,7 +45,14 @@ void nats_command_handler(NATS::msg msg) {
 
     const char *mode = doc["params"]["mode"].as<const char *>();
     const char *color = doc["params"]["color"].as<const char *>();
-    ledSetState(mode, color);
+    const JsonVariantConst frameInterval = doc["params"]["frame_interval_ms"];
+    const JsonVariantConst pulsePeriod = doc["params"]["pulse_period_ms"];
+    if ((!frameInterval.isUnbound() && !frameInterval.is<uint32_t>()) ||
+        (!pulsePeriod.isUnbound() && !pulsePeriod.is<uint32_t>())) return;
+
+    ledSetState(mode, color,
+                frameInterval | STRIP_DEFAULT_FRAME_INTERVAL_MS,
+                pulsePeriod | STRIP_DEFAULT_PULSE_PERIOD_MS);
 }
 
 void nats_on_connect() {

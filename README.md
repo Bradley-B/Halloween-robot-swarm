@@ -30,16 +30,24 @@ is embedded in the executable at build time.
 
 ## Sending commands from the web page
 
-The page has an LED strip color picker and a mode selector. Choose a color
-and mode, then click **Apply to all robots**. Modes are:
+The page has an LED strip color picker, mode selector, and timing controls.
+Choose settings, then click **Apply to all robots**. Modes are:
 
 | Mode | Behavior |
 | --- | --- |
 | Rainbow | Moving rainbow across the strip; ignores the selected color |
-| Pulse sine wave | Selected color smoothly fades out and back in over two seconds |
-| Pulse square wave | Selected color alternates one second on, one second off |
+| Pulse sine wave | Selected color smoothly fades out and back in over the pulse period |
+| Pulse square wave | Selected color alternates on and off for half the pulse period each |
+| Chase | Five LEDs in the selected color travel along the strip and wrap around |
 | Solid | All strip LEDs stay lit in the selected color |
 | Off | All strip LEDs turn off |
+
+**Frame interval** sets the time between animation updates in milliseconds
+(1–60000, default 10). Rainbow advances its hue and chase moves one LED per
+interval, so larger values slow these effects. **Pulse period** sets the full
+sine or square pulse cycle in milliseconds (2–60000, default 2000), independent
+of the frame interval. Keep the frame interval shorter than the pulse period
+to show the pulse animation; actual update speed is limited by the hardware.
 
 The strip starts in rainbow mode. Settings remain in memory until another
 command or a restart; they are not saved across restarts or replayed to robots
@@ -61,7 +69,12 @@ to publish the example:
 {
   "target": "all",
   "command": "strip.set",
-  "params": { "mode": "solid", "color": "#ff9f43" }
+  "params": {
+    "mode": "solid",
+    "color": "#ff9f43",
+    "frame_interval_ms": 10,
+    "pulse_period_ms": 2000
+  }
 }
 ```
 
@@ -78,7 +91,12 @@ The API accepts `application/json` with `subject` and `message` fields:
   "message": {
     "target": "all",
     "command": "strip.set",
-    "params": { "mode": "solid", "color": "#ff9f43" }
+    "params": {
+      "mode": "solid",
+      "color": "#ff9f43",
+      "frame_interval_ms": 10,
+      "pulse_period_ms": 2000
+    }
   }
 }
 ```
@@ -91,11 +109,13 @@ confirm receipt or execution by a robot.
 
 The firmware subscribes to `robots.commands` and handles `strip.set` commands
 with `target: "all"`. Both `params.mode` and `params.color` are required. Mode
-values are `rainbow`, `pulse_sine`, `pulse_square`, `solid`, and `off`; colors
-use `#RRGGBB` hexadecimal notation. Invalid strip settings are ignored without
-changing the current state. The Go server forwards JSON without interpreting
-the robot command schema. The existing `echo` subject still handles matrix
-letter commands.
+values are `rainbow`, `pulse_sine`, `pulse_square`, `chase`, `solid`, and `off`;
+colors use `#RRGGBB` hexadecimal notation. Optional integer fields
+`params.frame_interval_ms` and `params.pulse_period_ms` use the ranges above;
+omitting them applies their defaults, including on subsequent commands.
+Invalid strip settings are ignored without changing any current settings.
+The Go server forwards JSON without interpreting the robot command schema.
+The existing `echo` subject still handles matrix letter commands.
 
 Configure `WIFI_SSID`, `WIFI_PSK`, and the NATS server's LAN address in
 `firmware/src/main.cpp` before uploading firmware. The NATS port is `4223`.

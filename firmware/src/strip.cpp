@@ -7,16 +7,17 @@
 namespace {
 constexpr uint8_t LED_PIN = 14;
 constexpr uint16_t LED_COUNT = 60;
-constexpr uint32_t FRAME_INTERVAL_MS = 10;
-constexpr uint32_t PULSE_PERIOD_MS = 2000;
+constexpr uint16_t CHASE_LENGTH = 5;
 constexpr float PULSE_TWO_PI = 6.28318530718f;
 
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGBW + NEO_KHZ800);
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRBW + NEO_KHZ800);
 
-enum class StripMode { Rainbow, PulseSine, PulseSquare, Solid, Off };
+enum class StripMode { Rainbow, PulseSine, PulseSquare, Chase, Solid, Off };
 
 StripMode mode = StripMode::Rainbow;
 uint32_t color = 0xff9f43;
+uint32_t frameIntervalMs = STRIP_DEFAULT_FRAME_INTERVAL_MS;
+uint32_t pulsePeriodMs = STRIP_DEFAULT_PULSE_PERIOD_MS;
 uint32_t animationStartedAt = 0;
 uint32_t lastFrameAt = 0;
 bool dirty = true;
@@ -26,6 +27,7 @@ bool parseMode(const char *value, StripMode &result) {
   if (strcmp(value, "rainbow") == 0) result = StripMode::Rainbow;
   else if (strcmp(value, "pulse_sine") == 0) result = StripMode::PulseSine;
   else if (strcmp(value, "pulse_square") == 0) result = StripMode::PulseSquare;
+  else if (strcmp(value, "chase") == 0) result = StripMode::Chase;
   else if (strcmp(value, "solid") == 0) result = StripMode::Solid;
   else if (strcmp(value, "off") == 0) result = StripMode::Off;
   else return false;
@@ -63,15 +65,20 @@ void ledSetup() {
   dirty = true;
 }
 
-bool ledSetState(const char *newMode, const char *newColor) {
+bool ledSetState(const char *newMode, const char *newColor,
+                 uint32_t newFrameIntervalMs, uint32_t newPulsePeriodMs) {
   StripMode parsedMode;
   uint32_t parsedColor;
-  if (!parseMode(newMode, parsedMode) || !parseColor(newColor, parsedColor)) {
+  if (!parseMode(newMode, parsedMode) || !parseColor(newColor, parsedColor) ||
+      newFrameIntervalMs < 1 || newFrameIntervalMs > 60000 ||
+      newPulsePeriodMs < 2 || newPulsePeriodMs > 60000) {
     return false;
   }
 
   mode = parsedMode;
   color = parsedColor;
+  frameIntervalMs = newFrameIntervalMs;
+  pulsePeriodMs = newPulsePeriodMs;
   animationStartedAt = millis();
   dirty = true;
   return true;
@@ -81,24 +88,33 @@ void ledLoop() {
   const uint32_t now = millis();
   const bool animated = mode == StripMode::Rainbow ||
                         mode == StripMode::PulseSine ||
-                        mode == StripMode::PulseSquare;
-  if (!dirty && (!animated || now - lastFrameAt < FRAME_INTERVAL_MS)) return;
+                        mode == StripMode::PulseSquare ||
+                        mode == StripMode::Chase;
+  if (!dirty && (!animated || now - lastFrameAt < frameIntervalMs)) return;
 
   lastFrameAt = now;
   const uint32_t elapsed = now - animationStartedAt;
   switch (mode) {
     case StripMode::Rainbow:
-      strip.rainbow(static_cast<uint16_t>((elapsed / FRAME_INTERVAL_MS) * 256));
+      strip.rainbow(static_cast<uint16_t>((elapsed / frameIntervalMs) * 256));
       break;
     case StripMode::PulseSine: {
-      const float phase = PULSE_TWO_PI * (elapsed % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
+      const float phase = PULSE_TWO_PI * (elapsed % pulsePeriodMs) / pulsePeriodMs;
       const uint8_t level = static_cast<uint8_t>(255.0f * (0.5f + 0.5f * cosf(phase)));
       strip.fill(scaledColor(level));
       break;
     }
     case StripMode::PulseSquare:
-      strip.fill(elapsed % PULSE_PERIOD_MS < PULSE_PERIOD_MS / 2 ? color : 0);
+      strip.fill(elapsed % pulsePeriodMs < pulsePeriodMs / 2 ? color : 0);
       break;
+    case StripMode::Chase: {
+      const uint16_t position = (elapsed / frameIntervalMs) % LED_COUNT;
+      strip.clear();
+      for (uint16_t i = 0; i < CHASE_LENGTH; ++i) {
+        strip.setPixelColor((position + i) % LED_COUNT, color);
+      }
+      break;
+    }
     case StripMode::Solid:
       strip.fill(color);
       break;

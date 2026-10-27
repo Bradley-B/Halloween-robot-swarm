@@ -50,6 +50,7 @@
           <option value="rainbow">Rainbow</option>
           <option value="pulse_sine">Pulse sine wave</option>
           <option value="pulse_square">Pulse square wave</option>
+          <option value="chase">Chase</option>
           <option value="solid">Solid</option>
           <option value="off">Off</option>
         </select>
@@ -57,7 +58,15 @@
         <label for="strip-color">LED strip color <output id="color-value" for="strip-color">#ff9f43</output></label>
         <input type="color" id="strip-color" name="color" value="#ff9f43"
                aria-describedby="color-hint">
-        <span id="color-hint" class="hint">Color applies to solid and pulse modes.</span>
+        <span id="color-hint" class="hint">Color applies to solid, pulse, and chase modes.</span>
+        <label for="strip-frame-interval">Frame interval (ms)</label>
+        <input type="number" id="strip-frame-interval" name="frame_interval_ms"
+               min="1" max="60000" step="1" value="10" required aria-describedby="frame-hint">
+        <span id="frame-hint" class="hint">Time between animation updates. Lower values speed up rainbow and chase.</span>
+        <label for="strip-pulse-period">Pulse period (ms)</label>
+        <input type="number" id="strip-pulse-period" name="pulse_period_ms"
+               min="2" max="60000" step="1" value="2000" required aria-describedby="pulse-hint">
+        <span id="pulse-hint" class="hint">Length of a complete pulse cycle. Use a shorter frame interval for smooth animation.</span>
         <button type="submit">Apply to all robots</button>
       </form>
       <p id="strip-status" role="status" aria-live="polite"></p>
@@ -70,12 +79,14 @@
                  autocomplete="off" spellcheck="false" aria-describedby="subject-hint">
           <span id="subject-hint" class="hint">Use the subject your robots listen to.</span>
           <label for="message">Command (JSON)</label>
-          <textarea id="message" name="message" rows="9" required spellcheck="false">{
+          <textarea id="message" name="message" rows="11" required spellcheck="false">{
   "target": "all",
   "command": "strip.set",
   "params": {
     "mode": "solid",
-    "color": "#ff9f43"
+    "color": "#ff9f43",
+    "frame_interval_ms": 10,
+    "pulse_period_ms": 2000
   }
 }</textarea>
           <button type="submit">Send command</button>
@@ -91,8 +102,9 @@
       const modeHint = document.querySelector('#mode-hint');
       const modeHints = {
         rainbow: 'A moving rainbow across the strip. The selected color is unused.',
-        pulse_sine: 'The selected color smoothly fades down and back up every two seconds.',
-        pulse_square: 'The selected color switches on for one second, then off for one second.',
+        pulse_sine: 'The selected color smoothly fades down and back up over the pulse period.',
+        pulse_square: 'The selected color switches on for half the pulse period, then off for half.',
+        chase: 'Five lit LEDs travel along the strip in the selected color, then wrap around.',
         solid: 'The whole strip stays lit in the selected color.',
         off: 'All strip LEDs are off.'
       };
@@ -134,7 +146,9 @@
           command: 'strip.set',
           params: {
             mode: stripForm.elements.mode.value,
-            color: stripForm.elements.color.value
+            color: stripForm.elements.color.value,
+            frame_interval_ms: stripForm.elements.frame_interval_ms.valueAsNumber,
+            pulse_period_ms: stripForm.elements.pulse_period_ms.valueAsNumber
           }
         }, stripForm.querySelector('button'), stripStatus, 'LED strip settings sent to all robots.');
       });
