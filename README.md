@@ -39,13 +39,14 @@ Choose settings, then click **Apply to all robots**. Modes are:
 | Pulse sine wave | Selected color smoothly fades out and back in over the pulse period |
 | Pulse square wave | Selected color alternates on and off for half the pulse period each |
 | Chase | Five LEDs in the selected color travel along the strip and wrap around |
+| Chase bounce | Five LEDs in the selected color travel back and forth, reversing at each end |
 | Solid | All strip LEDs stay lit in the selected color |
 | Off | All strip LEDs turn off |
 
 **Frame interval** sets the time between animation updates in milliseconds
-(1–60000, default 10). Rainbow advances its hue and chase moves one LED per
-interval, so larger values slow these effects. **Pulse period** sets the full
-sine or square pulse cycle in milliseconds (2–60000, default 2000), independent
+(1–60000, default 10). Rainbow advances its hue and both chase modes move one
+LED per interval, so larger values slow these effects. **Pulse period** sets
+the full sine or square pulse cycle in milliseconds (2–60000, default 2000), independent
 of the frame interval. Keep the frame interval shorter than the pulse period
 to show the pulse animation; actual update speed is limited by the hardware.
 
@@ -109,8 +110,8 @@ confirm receipt or execution by a robot.
 
 The firmware subscribes to `robots.commands` and handles `strip.set` commands
 with `target: "all"`. Both `params.mode` and `params.color` are required. Mode
-values are `rainbow`, `pulse_sine`, `pulse_square`, `chase`, `solid`, and `off`;
-colors use `#RRGGBB` hexadecimal notation. Optional integer fields
+values are `rainbow`, `pulse_sine`, `pulse_square`, `chase`, `chase_bounce`,
+`solid`, and `off`; colors use `#RRGGBB` hexadecimal notation. Optional integer fields
 `params.frame_interval_ms` and `params.pulse_period_ms` use the ranges above;
 omitting them applies their defaults, including on subsequent commands.
 Invalid strip settings are ignored without changing any current settings.

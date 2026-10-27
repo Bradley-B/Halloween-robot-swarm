@@ -12,7 +12,7 @@ constexpr float PULSE_TWO_PI = 6.28318530718f;
 
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRBW + NEO_KHZ800);
 
-enum class StripMode { Rainbow, PulseSine, PulseSquare, Chase, Solid, Off };
+enum class StripMode { Rainbow, PulseSine, PulseSquare, Chase, ChaseBounce, Solid, Off };
 
 StripMode mode = StripMode::Rainbow;
 uint32_t color = 0xff9f43;
@@ -28,6 +28,7 @@ bool parseMode(const char *value, StripMode &result) {
   else if (strcmp(value, "pulse_sine") == 0) result = StripMode::PulseSine;
   else if (strcmp(value, "pulse_square") == 0) result = StripMode::PulseSquare;
   else if (strcmp(value, "chase") == 0) result = StripMode::Chase;
+  else if (strcmp(value, "chase_bounce") == 0) result = StripMode::ChaseBounce;
   else if (strcmp(value, "solid") == 0) result = StripMode::Solid;
   else if (strcmp(value, "off") == 0) result = StripMode::Off;
   else return false;
@@ -89,7 +90,8 @@ void ledLoop() {
   const bool animated = mode == StripMode::Rainbow ||
                         mode == StripMode::PulseSine ||
                         mode == StripMode::PulseSquare ||
-                        mode == StripMode::Chase;
+                        mode == StripMode::Chase ||
+                        mode == StripMode::ChaseBounce;
   if (!dirty && (!animated || now - lastFrameAt < frameIntervalMs)) return;
 
   lastFrameAt = now;
@@ -112,6 +114,18 @@ void ledLoop() {
       strip.clear();
       for (uint16_t i = 0; i < CHASE_LENGTH; ++i) {
         strip.setPixelColor((position + i) % LED_COUNT, color);
+      }
+      break;
+    }
+    case StripMode::ChaseBounce: {
+      // Keep the entire lit group on the strip and reflect at each end.
+      static_assert(CHASE_LENGTH < LED_COUNT, "Bouncing chase needs room to move");
+      constexpr uint16_t travel = LED_COUNT - CHASE_LENGTH;
+      const uint16_t step = (elapsed / frameIntervalMs) % (2 * travel);
+      const uint16_t position = step <= travel ? step : 2 * travel - step;
+      strip.clear();
+      for (uint16_t i = 0; i < CHASE_LENGTH; ++i) {
+        strip.setPixelColor(position + i, color);
       }
       break;
     }
