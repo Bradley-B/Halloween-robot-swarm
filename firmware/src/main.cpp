@@ -2,6 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <ArduinoNATS.h>
 #include <ArduinoJson.h>
+#include <string.h>
 
 #include "frames.h"
 #include "strip.h"
@@ -28,13 +29,28 @@ void nats_echo_handler(NATS::msg msg) {
     nats.publish(msg.reply, msg.data);
 
     JsonDocument doc;
-    deserializeJson(doc, msg.data);
-    const char *letter = doc["letter"];
-    writeLetterAll(letter);
+    if (deserializeJson(doc, msg.data)) return;
+    const char *letter = doc["letter"].as<const char *>();
+    if (letter) writeLetterAll(letter);
+}
+
+void nats_command_handler(NATS::msg msg) {
+    JsonDocument doc;
+    if (deserializeJson(doc, msg.data)) return;
+
+    const char *target = doc["target"].as<const char *>();
+    const char *command = doc["command"].as<const char *>();
+    if (!target || strcmp(target, "all") != 0 ||
+        !command || strcmp(command, "strip.set") != 0) return;
+
+    const char *mode = doc["params"]["mode"].as<const char *>();
+    const char *color = doc["params"]["color"].as<const char *>();
+    ledSetState(mode, color);
 }
 
 void nats_on_connect() {
     nats.subscribe("echo", nats_echo_handler);
+    nats.subscribe("robots.commands", nats_command_handler);
 }
 
 // put your setup code here, to run once:

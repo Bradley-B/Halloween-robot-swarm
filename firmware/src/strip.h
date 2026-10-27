@@ -1,3 +1,7 @@
+#pragma once
+
 void ledSetup();
 void ledLoop();
-void rainbow(int wait);
+
+// Apply a mode and #RRGGBB color together. Invalid input leaves state unchanged.
+bool ledSetState(const char *mode, const char *color);

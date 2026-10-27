@@ -12,8 +12,8 @@ go run .
 
 Open http://localhost:8095 in your browser. NATS clients can connect to
 `nats://127.0.0.1:4223`; no separate NATS process is needed. Both listeners
-accept local connections. NATS uses core messaging without authentication
-or JetStream persistence.
+bind to all interfaces, allowing robots on the LAN to connect. NATS uses
+core messaging without authentication or JetStream persistence.
 
 Press Ctrl+C to gracefully shut down both servers. The HTTP server starts
 after NATS is ready; startup fails if either port is unavailable.
@@ -30,20 +30,38 @@ is embedded in the executable at build time.
 
 ## Sending commands from the web page
 
-The page contains a form with a NATS subject (default `robots.commands`) and
-a JSON message. Start a subscriber before sending a command:
+The page has an LED strip color picker and a mode selector. Choose a color
+and mode, then click **Apply to all robots**. Modes are:
+
+| Mode | Behavior |
+| --- | --- |
+| Rainbow | Moving rainbow across the strip; ignores the selected color |
+| Pulse sine wave | Selected color smoothly fades out and back in over two seconds |
+| Pulse square wave | Selected color alternates one second on, one second off |
+| Solid | All strip LEDs stay lit in the selected color |
+| Off | All strip LEDs turn off |
+
+The strip starts in rainbow mode. Settings remain in memory until another
+command or a restart; they are not saved across restarts or replayed to robots
+that were disconnected when the command was sent. The web controls show the
+settings to send, not live robot state.
+
+The **Custom command** section also accepts a NATS subject (default
+`robots.commands`) and a JSON message. To inspect outgoing commands, start a
+subscriber before sending one:
 
 ```sh
 nats --server nats://127.0.0.1:4223 sub robots.commands
 ```
 
-Open http://localhost:8095 and click **Send command** to publish the example:
+Open http://localhost:8095, expand **Custom command**, and click **Send command**
+to publish the example:
 
 ```json
 {
   "target": "all",
-  "command": "robot.scene",
-  "params": { "scene": "spooky" }
+  "command": "strip.set",
+  "params": { "mode": "solid", "color": "#ff9f43" }
 }
 ```
 
@@ -59,8 +77,8 @@ The API accepts `application/json` with `subject` and `message` fields:
   "subject": "robots.commands",
   "message": {
     "target": "all",
-    "command": "robot.scene",
-    "params": { "scene": "spooky" }
+    "command": "strip.set",
+    "params": { "mode": "solid", "color": "#ff9f43" }
   }
 }
 ```
@@ -71,10 +89,17 @@ be valid, non-null JSON. The server publishes the message value itself,
 without the HTTP wrapper. Success confirms publishing to NATS; it does not
 confirm receipt or execution by a robot.
 
-The example command format is a starting point for firmware development.
-The server does not interpret LED commands or enforce a robot command schema
-yet. NATS currently listens on loopback; microcontrollers on another device
-will need a LAN-accessible listener configured before connecting.
+The firmware subscribes to `robots.commands` and handles `strip.set` commands
+with `target: "all"`. Both `params.mode` and `params.color` are required. Mode
+values are `rainbow`, `pulse_sine`, `pulse_square`, `solid`, and `off`; colors
+use `#RRGGBB` hexadecimal notation. Invalid strip settings are ignored without
+changing the current state. The Go server forwards JSON without interpreting
+the robot command schema. The existing `echo` subject still handles matrix
+letter commands.
+
+Configure `WIFI_SSID`, `WIFI_PSK`, and the NATS server's LAN address in
+`firmware/src/main.cpp` before uploading firmware. The NATS port is `4223`.
+Strip animations update without blocking NATS command processing.
 
 ## Planned robot controls
 
@@ -82,9 +107,8 @@ Microcontrollers in multiple robot Halloween costumes will connect to NATS
 and listen for commands issued through the web server. Each costume has LED
 matrices for its eyes and mouth, plus an LED strip.
 
-The controls below are brainstorming proposals; firmware support is not
-implemented yet. The web form can publish JSON messages now, but the final
-command schema and routing for individual robots and groups still need to
+The controls below are brainstorming proposals beyond the implemented
+`strip.set` control. Routing for individual robots and groups still needs to
 be defined.
 
 ### Targeting
