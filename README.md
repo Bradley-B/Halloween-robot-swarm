@@ -1,5 +1,62 @@
 # Halloween Robot Swarm
 
+## Face Lab: PNG animation importer
+
+**Double-click `Start Animation Studio.cmd`** to open the separate local app.
+Requires Python 3.10+; there are no packages to install, and you do not need
+to run the Go server. Keep the launcher window open while using the app;
+press Ctrl+C to stop. It opens `http://127.0.0.1:8096` automatically (or a
+free port if 8096 is busy). From any platform you can also run:
+
+```sh
+python animation-studio/studio.py
+```
+
+1. In Piskel, make **13×9 eye frames** or **26×9 mouth frames**, then export
+   a **PNG spritesheet at 1× scale**, without padding or spacing. Horizontal,
+   vertical, and grid sheets work. Import eyes and mouths separately.
+2. Choose the face part and drop in the PNG. Frames read across rows by
+   default; choose down columns if needed. Set the frame count if Piskel
+   leaves empty cells at the end of the sheet. Each animation supports
+   1–255 frames. PNGs must be smaller than 8 MiB.
+3. Give it a unique name and choose **Animation FPS** (1–60). Both eyes use
+   the same 13×9 sprite; the mouth is one continuous 26×9 sprite.
+4. Choose an eye animation and a mouth animation to see them together.
+   The gallery plays every built-in and custom animation at once. Pause,
+   restart, and **Preview speed** affect all previews. Preview speed is
+   temporary; **Animation FPS** is what gets saved. Saved timing uses integer
+   milliseconds, so 60 FPS becomes 17 ms per frame (about 58.8 FPS).
+5. Click **Upload as new animation**. This adds it to the project for the
+   **next firmware build and flash**. Restart/rebuild the Go server afterward
+   to make the new name available in its existing matrix animation selector.
+   Already-running robots need the new firmware before they can play it.
+
+Imports quantize colors to the firmware's RGB332 format. Transparent pixels
+become black; partial transparency blends against black. Previews show the
+quantized colors, while actual LED brightness depends on the hardware.
+Piskel layers must be merged into the exported PNG; `.piskel` project files
+and per-frame Piskel timing are not imported.
+
+The source library is `server/animations.json`; generated flash data and
+registry entries are in `firmware/src/custom_animations.h`. Commit both files
+after importing. The app never rewrites the built-in frames in `frames.cpp`.
+Duplicate names are rejected. The app caps custom pixel data at 128 KiB;
+PlatformIO's firmware build remains the final check that the board has room.
+To remove an imported animation, remove its object from `server/animations.json`
+and restart Studio to regenerate the header before rebuilding the firmware.
+
+Developer checks (no Python or Node dependencies):
+
+```sh
+python -m unittest discover -s animation-studio -p "test_*.py"
+node animation-studio/test_sprites.cjs
+```
+
+Optional browser checks use an installed Chrome or Edge and Node 22+, with
+temporary animation files: `node animation-studio/test_browser.cjs`.
+
+## Swarm control server
+
 A Go process that serves an HTML page and runs an embedded NATS server.
 
 Requires Go 1.26 or newer. With automatic toolchain selection enabled, Go
@@ -168,9 +225,11 @@ within each robot.
 Eye targets accept `blink`, `look`, and `off`. Mouth targets accept `talk`,
 `smile`, and `off`. The `"all"` selector accepts `off` to darken the whole
 face. The website filters animation choices for the selected face part.
+Custom animations imported through Face Lab are available for their saved
+face part after rebuilding/flashing firmware and restarting the Go server.
 Unknown animation names, invalid selectors, and animations incompatible with
 any selected panel are ignored without changing any selections. Commands
-switch the built-in animations; they do not upload frame pixels or alter
+switch the compiled-in animations; they do not upload frame pixels or alter
 frame timing.
 
 Selections last until changed or the robot restarts. The existing red X and

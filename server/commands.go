@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"io"
@@ -15,6 +16,15 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+// Animation Studio writes this catalog; restarting the server embeds new entries.
+//go:embed animations.json
+var customAnimationsJSON []byte
+
+type customAnimationOption struct {
+	Name string `json:"name"`
+	Part string `json:"part"`
+}
+
 type commandRequest struct {
 	Subject string          `json:"subject"`
 	Message json.RawMessage `json:"message"`
@@ -22,6 +32,14 @@ type commandRequest struct {
 
 func newHandler(publisher *nats.Conn) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/animations", func(w http.ResponseWriter, r *http.Request) {
+		var options []customAnimationOption
+		if err := json.Unmarshal(customAnimationsJSON, &options); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Could not load custom animation catalog."})
+			return
+		}
+		writeJSON(w, http.StatusOK, options)
+	})
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(indexHTML)

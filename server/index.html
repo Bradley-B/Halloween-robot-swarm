@@ -157,6 +157,25 @@
       matrixForm.elements.matrix.addEventListener('change', updateAnimationOptions);
       matrixForm.elements.animation.addEventListener('change', updateAnimationHint);
       updateAnimationOptions();
+      async function loadCustomAnimations() {
+        try {
+          const response = await fetch('/api/animations');
+          if (!response.ok) throw new Error('Could not load custom animations.');
+          const animations = await response.json();
+          for (const entry of animations) {
+            if (!['eyes', 'mouth'].includes(entry.part)) continue;
+            const option = new Option(entry.name, entry.name);
+            option.dataset.part = entry.part;
+            matrixForm.elements.animation.add(option);
+            animationHints[entry.name] = `Custom ${entry.part} animation. Requires firmware built after importing this animation in Face Lab.`;
+          }
+          updateAnimationOptions();
+        } catch (error) {
+          matrixStatus.dataset.state = 'error';
+          matrixStatus.textContent = error.message;
+        }
+      }
+      loadCustomAnimations();
       const modeHint = document.querySelector('#mode-hint');
       const modeHints = {
         rainbow: 'A moving rainbow across the strip. The selected color is unused.',

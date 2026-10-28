@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Face Lab · Robot Animation Studio</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/sprites.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <div class="brand"><span class="brand-icon" aria-hidden="true">▦</span><span>SWARM / FACE LAB</span></div>
+      <span class="local"><span aria-hidden="true">●</span> Local workspace</span>
+    </header>
+    <div class="intro"><p class="eyebrow">ROBOT ANIMATION STUDIO</p><h1>A little more character.</h1>
+      <p>Drop in a spritesheet. See it on your robot. Make it part of the swarm.</p></div>
+    <div class="workspace">
+      <section class="panel import-panel" aria-labelledby="import-title">
+        <div class="section-top"><h2 id="import-title">Import animation</h2><span class="step">01 / CREATE</span></div>
+        <form id="import-form">
+          <fieldset><legend>Face part</legend><div class="part-options">
+            <label class="part-option"><input type="radio" name="part" value="eyes" checked><span>Both eyes <small>13 × 9 per frame</small></span></label>
+            <label class="part-option"><input type="radio" name="part" value="mouth"><span>Whole mouth <small>26 × 9 per frame</small></span></label>
+          </div></fieldset>
+          <label class="drop-zone" id="drop-zone" for="sheet-file">
+            <span class="upload-icon" aria-hidden="true">↑</span><strong id="file-label">Choose or drop a PNG</strong>
+            <span>Horizontal, vertical, or grid spritesheets</span>
+            <input id="sheet-file" type="file" accept="image/png,.png" aria-describedby="export-hint">
+          </label>
+          <p class="hint" id="export-hint">Piskel: export PNG at 1× scale, without padding or spacing. Transparent pixels become black.</p>
+          <div id="sheet-details" hidden>
+            <div class="sheet-preview"><img id="sheet-image" alt="Imported spritesheet"><span id="sheet-info"></span></div>
+          </div>
+          <label for="animation-name">Animation name</label>
+          <input id="animation-name" name="name" placeholder="e.g. spooky_blink" pattern="[a-z][a-z0-9_-]{0,31}" maxlength="32" required autocomplete="off" spellcheck="false" aria-describedby="name-hint">
+          <span class="hint" id="name-hint">Lowercase letters, numbers, _ or −. Start with a letter.</span>
+          <div class="field-row">
+            <div><label for="fps">Animation FPS</label><input id="fps" type="number" min="1" max="60" step="1" value="8" required><small id="timing-hint" class="hint">125 ms per frame</small></div>
+            <div><label for="frame-count">Frame count</label><input id="frame-count" type="number" min="1" max="255" step="1" placeholder="Auto" aria-describedby="count-hint"><small id="count-hint" class="hint">Skip empty end cells</small></div>
+          </div>
+          <label for="frame-order">Frame order</label>
+          <select id="frame-order"><option value="rows">Across rows → then down (Piskel)</option><option value="columns">Down columns ↓ then across</option></select>
+          <p id="import-status" role="status" aria-live="polite" class="status">Choose a PNG to get started.</p>
+          <button class="primary" id="upload" type="submit" disabled>＋ Upload as new animation</button>
+          <p class="hint save-note">Saves to this project. Build and flash your firmware to put it on the robot.</p>
+        </form>
+      </section>
+      <section class="panel preview-panel" aria-labelledby="preview-title">
+        <div class="section-top"><h2 id="preview-title">On your robot</h2><span class="step">02 / PREVIEW</span></div>
+        <div class="head-stage"><canvas id="head-preview" width="620" height="420" aria-label="Animated robot head with two 13 by 9 eyes and a 26 by 9 mouth"></canvas>
+          <div class="stage-caption"><span>2 × 13×9 EYES</span><span>1 × 26×9 MOUTH</span></div></div>
+        <div class="pair-controls"><div><label for="preview-eyes">Eyes</label><select id="preview-eyes"></select></div><div><label for="preview-mouth">Mouth</label><select id="preview-mouth"></select></div></div>
+        <div class="playback"><button type="button" id="pause" class="secondary" aria-pressed="false">Pause</button><button type="button" id="restart" class="text-button">Restart</button>
+          <div><label for="preview-fps">Preview speed</label><select id="preview-fps"><option value="">Saved timing</option><option value="1">1 FPS</option><option value="2">2 FPS</option><option value="4">4 FPS</option><option value="8">8 FPS</option><option value="12">12 FPS</option><option value="16">16 FPS</option><option value="24">24 FPS</option><option value="30">30 FPS</option><option value="60">60 FPS</option></select></div></div>
+        <p class="hint">Both eyes play the same sprite. The mouth spans two panels. Preview colors use the robot’s RGB332 format; physical brightness may vary.</p>
+      </section>
+    </div>
+    <section class="library" aria-labelledby="library-title">
+      <div class="library-heading"><div><p class="eyebrow">THE WHOLE CAST</p><h2 id="library-title">Every animation, in motion.</h2></div><span id="library-count" class="count">Loading…</span></div>
+      <p class="library-hint">All previews play together. Click an animation to try it on the head above.</p>
+      <div id="gallery" class="gallery"></div>
+      <p id="library-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+    <footer><span>FACE LAB <span aria-hidden="true">/</span> HALLOWEEN ROBOT SWARM</span><span>Local files. No accounts. No build step.</span></footer>
+  </main>
+</body>
+</html>

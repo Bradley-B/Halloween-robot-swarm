@@ -152,12 +152,15 @@ const char talkName[] PROGMEM = "talk";
 const char smileName[] PROGMEM = "smile";
 const char offName[] PROGMEM = "off";
 
+#include "custom_animations.h"
+
 const MatrixAnimation animations[] PROGMEM = {
   {blinkName, blinkFrames, sizeof(blinkFrames) / sizeof(ColorFrame), MATRIX_WIDTH},
   {lookName, lookFrames, sizeof(lookFrames) / sizeof(ColorFrame), MATRIX_WIDTH},
   {talkName, talkFrames, sizeof(talkFrames) / sizeof(ColorFrame), MOUTH_WIDTH},
   {smileName, smileFrames, sizeof(smileFrames) / sizeof(ColorFrame), MOUTH_WIDTH},
-  {offName, offFrames, sizeof(offFrames) / sizeof(ColorFrame), 0}
+  {offName, offFrames, sizeof(offFrames) / sizeof(ColorFrame), 0},
+  CUSTOM_MATRIX_ANIMATIONS
 };
 } // namespace
 
