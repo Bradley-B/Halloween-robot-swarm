@@ -43,7 +43,8 @@
   <body>
     <main>
       <h1>Halloween Robot Swarm</h1>
-      <p>Control the LED strips on all connected robots.</p>
+      <p>Control the LED strips and matrices on all connected robots.</p>
+      <h2>LED strip</h2>
       <form id="strip-form">
         <label for="strip-mode">LED strip mode</label>
         <select id="strip-mode" name="mode" aria-describedby="mode-hint">
@@ -72,6 +73,30 @@
       </form>
       <p id="strip-status" role="status" aria-live="polite"></p>
       <p class="hint">Settings are sent when you click Apply. They reset to rainbow when a robot restarts.</p>
+      <h2>Matrix animations</h2>
+      <p class="hint">Each matrix plays its selection independently. Choose all matrices to give them the same animation.</p>
+      <form id="matrix-form">
+        <label for="matrix-number">Matrix</label>
+        <select id="matrix-number" name="matrix">
+          <option value="all">All four matrices</option>
+          <option value="1">Matrix 1</option>
+          <option value="2">Matrix 2</option>
+          <option value="3">Matrix 3</option>
+          <option value="4">Matrix 4</option>
+        </select>
+        <label for="matrix-animation">Animation</label>
+        <select id="matrix-animation" name="animation" aria-describedby="animation-hint">
+          <option value="blink">Blinking eye</option>
+          <option value="look">Looking eye</option>
+          <option value="talk">Talking mouth</option>
+          <option value="smile">Smile</option>
+          <option value="off">Off</option>
+        </select>
+        <span id="animation-hint" class="hint"></span>
+        <button type="submit">Apply matrix animation</button>
+      </form>
+      <p id="matrix-status" role="status" aria-live="polite"></p>
+      <p class="hint">Animations repeat until changed. Frame timing is built into each animation. Selections reset when a robot restarts.</p>
       <details>
         <summary>Custom command</summary>
         <form id="command-form">
@@ -100,6 +125,20 @@
       const status = document.querySelector('#status');
       const stripForm = document.querySelector('#strip-form');
       const stripStatus = document.querySelector('#strip-status');
+      const matrixForm = document.querySelector('#matrix-form');
+      const matrixStatus = document.querySelector('#matrix-status');
+      const animationHints = {
+        blink: 'A blue and purple eye blinks, with a long open frame and short closing frames.',
+        look: 'A blue and purple eye looks left, center, and right.',
+        talk: 'An orange and purple mouth alternates between smiling and open frames.',
+        smile: 'An orange smile with white teeth, held until you choose another animation.',
+        off: 'Turn off the selected matrices.'
+      };
+      function updateAnimationHint() {
+        document.querySelector('#animation-hint').textContent = animationHints[matrixForm.elements.animation.value];
+      }
+      matrixForm.elements.animation.addEventListener('change', updateAnimationHint);
+      updateAnimationHint();
       const modeHint = document.querySelector('#mode-hint');
       const modeHints = {
         rainbow: 'A moving rainbow across the strip. The selected color is unused.',
@@ -153,6 +192,19 @@
             pulse_period_ms: stripForm.elements.pulse_period_ms.valueAsNumber
           }
         }, stripForm.querySelector('button'), stripStatus, 'LED strip settings sent to all robots.');
+      });
+
+      matrixForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const selectedMatrix = matrixForm.elements.matrix.value;
+        await publishCommand('robots.commands', {
+          target: 'all',
+          command: 'matrix.set',
+          params: {
+            matrix: selectedMatrix === 'all' ? 'all' : Number(selectedMatrix),
+            animation: matrixForm.elements.animation.value
+          }
+        }, matrixForm.querySelector('button'), matrixStatus, 'Matrix animation command sent.');
       });
 
       form.addEventListener('submit', async (event) => {

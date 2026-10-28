@@ -122,6 +122,83 @@ Configure `WIFI_SSID`, `WIFI_PSK`, and the NATS server's LAN address in
 `firmware/src/main.cpp` before uploading firmware. The NATS port is `4223`.
 Strip animations update without blocking NATS command processing.
 
+## Matrix animations
+
+The **Matrix animations** form selects a recurring animation for one matrix
+or all four matrices on every connected robot. Each matrix has its own frame
+index and timer, so, for example, matrices 1 and 2 can blink while matrix 3
+talks and matrix 4 shows a static smile. Selecting an animation restarts it at
+its first frame. The form shows settings to send, not live robot state.
+
+| Animation | Behavior |
+| --- | --- |
+| `blink` | Blue and purple eye: open 2400 ms, half closed 100 ms, closed 180 ms, half closed 100 ms |
+| `look` | Eye looks left 900 ms, center 400 ms, right 900 ms, center 400 ms |
+| `talk` | Orange and purple mouth: smile 300 ms, open 450 ms, smile 200 ms, open 250 ms |
+| `smile` | Static orange smile with white teeth |
+| `off` | Black frame, held until changed |
+
+Send `matrix.set` to `robots.commands` to make matrix 3 talk:
+
+```json
+{
+  "target": "all",
+  "command": "matrix.set",
+  "params": { "matrix": 3, "animation": "talk" }
+}
+```
+
+`params.matrix` must be an integer from 1 to 4, or the string `"all"`.
+Numbers correspond to I2C addresses `0x30`, `0x31`, `0x32`, and `0x33`.
+`target: "all"` broadcasts to robots; `params.matrix` selects the display
+within each robot. Unknown animation names and invalid matrix selectors are
+ignored without changing any selections. Commands switch the built-in
+animations; they do not upload frame pixels or alter frame timing.
+
+Selections last until changed or the robot restarts. The existing red X and
+green circle remain as startup/connectivity indicators. After a Wi-Fi
+reconnection, selected animations resume. The legacy `echo` letter command
+stops animations on all matrices and holds the letter until another command.
+
+### Adding frames and animations
+
+Edit `firmware/src/frames.cpp`. Every color frame contains exactly 117 bytes:
+13 pixels per row, 9 rows, in row-major order. Pixels use RGB332 (3 red bits,
+3 green bits, 2 blue bits), giving 256 possible colors. `rgb332(r, g, b)` in
+`frames.h` converts 8-bit channel values to this format. The `K`, `P`, `W`,
+`B`, `C`, and `O` symbols in the starter frames are RGB332 values for
+readability; they do not restrict frames to a palette.
+
+Store pixel arrays, `ColorFrame` sequences, animation names, and the animation
+registry in `PROGMEM` so they stay in flash. A frame entry pairs a pixel-array
+pointer with its hold time in milliseconds:
+
+```cpp
+const ColorFrame customFrames[] PROGMEM = {
+  {eyeCenter, 1800},
+  {eyeClosed, 200},
+  {nullptr, 100} // nullptr is a fully black frame; no pixel array needed.
+};
+const char customName[] PROGMEM = "custom";
+// Add this entry to animations[]:
+// {customName, customFrames, sizeof(customFrames) / sizeof(ColorFrame)}
+```
+
+Use 1–65535 ms per frame and 1–255 entries per animation. The last entry loops
+back to the first. An animation with one entry holds indefinitely. Add its
+name to the website's animation options and `animationHints` in
+`server/index.html` as well.
+
+Pixel arrays can be shared between animations and matrices. The starter set
+has seven unique color frames (819 bytes of pixel data in flash), plus small
+flash descriptors. Playback adds only a flash pointer, timestamp, frame index,
+and flag per matrix (about 48 bytes total on ESP8266). Rendering reads pixels
+directly from flash into the driver's existing buffers, without allocating
+additional framebuffers or copying animation sequences into RAM. Only changed
+frames are sent over I2C. Playback uses `millis()` without delays and advances
+at most one frame per loop; a slow update lengthens the hold rather than
+triggering a burst of frames to catch up.
+
 ## Planned robot controls
 
 Microcontrollers in multiple robot Halloween costumes will connect to NATS
@@ -129,8 +206,8 @@ and listen for commands issued through the web server. Each costume has LED
 matrices for its eyes and mouth, plus an LED strip.
 
 The controls below are brainstorming proposals beyond the implemented
-`strip.set` control. Routing for individual robots and groups still needs to
-be defined.
+`strip.set` and `matrix.set` controls. Routing for individual robots and groups
+still needs to be defined.
 
 ### Targeting
 

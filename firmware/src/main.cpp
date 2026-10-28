@@ -40,8 +40,23 @@ void nats_command_handler(NATS::msg msg) {
 
     const char *target = doc["target"].as<const char *>();
     const char *command = doc["command"].as<const char *>();
-    if (!target || strcmp(target, "all") != 0 ||
-        !command || strcmp(command, "strip.set") != 0) return;
+    if (!target || strcmp(target, "all") != 0 || !command) return;
+
+    if (strcmp(command, "matrix.set") == 0) {
+        const JsonVariantConst matrix = doc["params"]["matrix"];
+        uint8_t matrixNumber;
+        if (matrix.is<const char *>() && strcmp(matrix.as<const char *>(), "all") == 0) {
+            matrixNumber = 0;
+        } else if (matrix.is<uint8_t>() && matrix.as<uint8_t>() >= 1 &&
+                   matrix.as<uint8_t>() <= MATRIX_COUNT) {
+            matrixNumber = matrix.as<uint8_t>();
+        } else {
+            return;
+        }
+        matrixSetAnimation(matrixNumber, doc["params"]["animation"].as<const char *>());
+        return;
+    }
+    if (strcmp(command, "strip.set") != 0) return;
 
     const char *mode = doc["params"]["mode"].as<const char *>();
     const char *color = doc["params"]["color"].as<const char *>();
@@ -81,5 +96,6 @@ void loop() {
     }
     nats.process();
     ledLoop();
+    matrixLoop();
     yield();  // yield to let esp8266 run background wifi tasks
 }

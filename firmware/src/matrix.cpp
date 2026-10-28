@@ -1,113 +1,116 @@
-// Rainbow swirl example for the Adafruit IS31FL3741 13x9 PWM RGB LED Matrix
-// Driver w/STEMMA QT / Qwiic connector. This is nearly the same as the
-// prior qtmatrix example, but animation is generally smoother as it
-// buffers the LED states in RAM and updates everything at once via the
-// show() function (a la NeoPixels). This requires a little more memory but
-// should still fit on small microcontrollers like Arduino Uno, unless
-// there's a lot of other stuff going on.
-
 #include <Adafruit_IS31FL3741.h>
+#include <pgmspace.h>
+
 #include "matrix.h"
 
-Adafruit_IS31FL3741_QT_buffered matrix;
-Adafruit_IS31FL3741_QT_buffered matrix2;
-Adafruit_IS31FL3741_QT_buffered matrix3;
-Adafruit_IS31FL3741_QT_buffered matrix4;
-// If colors appear wrong on matrix, try invoking constructor like so:
-// Adafruit_IS31FL3741_QT_buffered ledmatrix(IS3741_RBG);
+namespace {
+// Retain the driver's existing buffers; no additional framebuffer is needed.
+Adafruit_IS31FL3741_QT_buffered matrices[MATRIX_COUNT];
+TwoWire *i2c = &Wire;
 
-// Some boards have just one I2C interface, but some have more...
-TwoWire *i2c = &Wire; // e.g. change this to &Wire1 for QT Py RP2040
+struct MatrixPlayback {
+  const MatrixAnimation *animation; // Flash address, shared by all players.
+  uint32_t frameStartedAt;
+  uint8_t frameIndex;
+  bool dirty;
+};
 
-void matrixInit(Adafruit_IS31FL3741_QT_buffered *matrix) {
-  matrix->setLEDscaling(0xFF);
-  matrix->setGlobalCurrent(0x10); // 0xFF
-  matrix->enable(true); // bring out of shutdown
+MatrixPlayback playback[MATRIX_COUNT] = {};
+
+ColorFrame readFrame(const MatrixAnimation &animation, uint8_t index) {
+  ColorFrame frame;
+  memcpy_P(&frame, animation.frames + index, sizeof(frame));
+  return frame;
 }
 
-void matrixSetup() {
-  Serial.begin(9600); //115200
-  Serial.println("Adafruit QT RGB Matrix Simple RGB Swirl Test");
-
-  if (! matrix.begin(IS3741_ADDR_DEFAULT, i2c)) {
-    Serial.println("IS41 0x30 not found");
-    while (1);
-  }
-
-  if (! matrix2.begin(IS3741_ADDR_DEFAULT + 1, i2c)) {
-    Serial.println("IS41 0x31 not found");
-    while (1);
-  }
-
-  if (! matrix3.begin(IS3741_ADDR_DEFAULT + 2, i2c)) {
-    Serial.println("IS41 0x32 not found");
-    while (1);
-  }
-
-  if (! matrix4.begin(IS3741_ADDR_DEFAULT + 3, i2c)) {
-    Serial.println("IS41 0x33 not found");
-    while (1);
-  }
-
-  Serial.println("IS41s found!");
-
-  // By default the LED controller communicates over I2C at 400 KHz.
-  // Arduino Uno can usually do 800 KHz, and 32-bit microcontrollers 1 MHz.
-  i2c->setClock(800000);
-
-  // Set brightness to max and bring controller out of shutdown state
-  matrixInit(&matrix);
-  matrixInit(&matrix2);
-  matrixInit(&matrix3);
-  matrixInit(&matrix4);
-}
-
-uint16_t hue_offset = 0;
-
-void matrixLoop() {
-  uint32_t i = 0;
-  for (int y=0; y<matrix.height(); y++) {
-    for (int x=0; x<matrix.width(); x++) {
-      uint32_t color888 = matrix.ColorHSV(i * 65536 / 117 + hue_offset);
-      uint16_t color565 = matrix.color565(color888);
-      matrix.drawPixel(x, y, color565);
-      i++;
+void showColorFrame(Adafruit_IS31FL3741_QT_buffered &matrix, const ColorFrame &frame) {
+  if (!frame.pixels) {
+    matrix.fillScreen(0);
+  } else {
+    for (uint8_t y = 0; y < MATRIX_HEIGHT; ++y) {
+      for (uint8_t x = 0; x < MATRIX_WIDTH; ++x) {
+        const uint8_t pixel = pgm_read_byte(frame.pixels + y * MATRIX_WIDTH + x);
+        const uint8_t red = (pixel >> 5) * 255 / 7;
+        const uint8_t green = ((pixel >> 2) & 0x07) * 255 / 7;
+        const uint8_t blue = (pixel & 0x03) * 255 / 3;
+        matrix.drawPixel(x, y, matrix.color565(red, green, blue));
+      }
     }
   }
+  matrix.show();
+}
+} // namespace
 
-  matrix.show(); // Buffered matrix MUST use show() to update!
-
-  hue_offset += 256;
-
-  // ledmatrix.setGlobalCurrent(hue_offset / 256); // Demonstrate global current
+void matrixSetup() {
+  Serial.begin(9600);
+  for (uint8_t i = 0; i < MATRIX_COUNT; ++i) {
+    const uint8_t address = IS3741_ADDR_DEFAULT + i;
+    if (!matrices[i].begin(address, i2c)) {
+      Serial.print("IS41 not found at 0x");
+      Serial.println(address, HEX);
+      while (1) yield();
+    }
+    matrices[i].setLEDscaling(0xFF);
+    matrices[i].setGlobalCurrent(0x10);
+    matrices[i].enable(true);
+  }
+  i2c->setClock(800000);
 }
 
-void setMonoFrame(Adafruit_IS31FL3741_QT_buffered *matrix, MonoFrame *frame) {
-  uint32_t packedColor = matrix->color565(frame->colorR, frame->colorG, frame->colorB);
+bool matrixSetAnimation(uint8_t matrixNumber, const char *animationName) {
+  if (matrixNumber > MATRIX_COUNT) return false;
+  const MatrixAnimation *animation = findMatrixAnimation(animationName);
+  if (!animation) return false;
 
-  matrix->fillScreen(0);
-  matrix->drawBitmap(0, 0, frame->bitmap, 13, 9, packedColor);
-  matrix->show();
+  for (uint8_t i = 0; i < MATRIX_COUNT; ++i) {
+    if (matrixNumber != 0 && matrixNumber != i + 1) continue;
+    playback[i].animation = animation;
+    playback[i].frameIndex = 0;
+    playback[i].dirty = true;
+  }
+  return true;
+}
+
+void matrixLoop() {
+  for (uint8_t i = 0; i < MATRIX_COUNT; ++i) {
+    MatrixPlayback &state = playback[i];
+    if (!state.animation) continue;
+
+    MatrixAnimation animation;
+    memcpy_P(&animation, state.animation, sizeof(animation));
+    ColorFrame frame = readFrame(animation, state.frameIndex);
+    if (!state.dirty) {
+      if (animation.frameCount == 1 || millis() - state.frameStartedAt < frame.durationMs) continue;
+      state.frameIndex = (state.frameIndex + 1) % animation.frameCount;
+      frame = readFrame(animation, state.frameIndex);
+    }
+
+    // Advance at most one frame per pass; no delay or catch-up burst after a stall.
+    showColorFrame(matrices[i], frame);
+    state.frameStartedAt = millis();
+    state.dirty = false;
+  }
 }
 
 void setMonoFrameAll(MonoFrame *frame) {
-  setMonoFrame(&matrix, frame);
-  setMonoFrame(&matrix2, frame);
-  setMonoFrame(&matrix3, frame);
-  setMonoFrame(&matrix4, frame);
-}
-
-void writeLetter(Adafruit_IS31FL3741_QT_buffered *matrix, const char *letter) {
-  matrix->fill(0);
-  matrix->setCursor(0, 0);
-  matrix->setTextColor(matrix->color565(0, 0, 255));
-  matrix->print(letter);
-  matrix->show();
+  for (uint8_t i = 0; i < MATRIX_COUNT; ++i) {
+    matrices[i].fillScreen(0);
+    matrices[i].drawBitmap(0, 0, frame->bitmap, MATRIX_WIDTH, MATRIX_HEIGHT,
+                          matrices[i].color565(frame->colorR, frame->colorG, frame->colorB));
+    matrices[i].show();
+    // Connectivity diagnostics temporarily cover, rather than erase, selections.
+    if (playback[i].animation) playback[i].dirty = true;
+  }
 }
 
 void writeLetterAll(const char *letter) {
-  writeLetter(&matrix, letter);
-  writeLetter(&matrix2, letter);
-  writeLetter(&matrix3, letter);
-  writeLetter(&matrix4, letter);
+  if (!letter) return;
+  for (uint8_t i = 0; i < MATRIX_COUNT; ++i) {
+    playback[i].animation = nullptr;
+    matrices[i].fillScreen(0);
+    matrices[i].setCursor(0, 0);
+    matrices[i].setTextColor(matrices[i].color565(0, 0, 255));
+    matrices[i].print(letter);
+    matrices[i].show();
+  }
 }
