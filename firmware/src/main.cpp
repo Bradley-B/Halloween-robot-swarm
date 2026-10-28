@@ -44,16 +44,20 @@ void nats_command_handler(NATS::msg msg) {
 
     if (strcmp(command, "matrix.set") == 0) {
         const JsonVariantConst matrix = doc["params"]["matrix"];
-        uint8_t matrixNumber;
-        if (matrix.is<const char *>() && strcmp(matrix.as<const char *>(), "all") == 0) {
-            matrixNumber = 0;
+        MatrixTarget matrixTarget;
+        if (matrix.is<const char *>()) {
+            const char *name = matrix.as<const char *>();
+            if (strcmp(name, "eyes") == 0) matrixTarget = MatrixTarget::Eyes;
+            else if (strcmp(name, "mouth") == 0) matrixTarget = MatrixTarget::Mouth;
+            else if (strcmp(name, "all") == 0) matrixTarget = MatrixTarget::All;
+            else return;
         } else if (matrix.is<uint8_t>() && matrix.as<uint8_t>() >= 1 &&
                    matrix.as<uint8_t>() <= MATRIX_COUNT) {
-            matrixNumber = matrix.as<uint8_t>();
+            matrixTarget = static_cast<MatrixTarget>(matrix.as<uint8_t>());
         } else {
             return;
         }
-        matrixSetAnimation(matrixNumber, doc["params"]["animation"].as<const char *>());
+        matrixSetAnimation(matrixTarget, doc["params"]["animation"].as<const char *>());
         return;
     }
     if (strcmp(command, "strip.set") != 0) return;

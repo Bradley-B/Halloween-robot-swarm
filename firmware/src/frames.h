@@ -5,6 +5,7 @@
 constexpr uint8_t MATRIX_WIDTH = 13;
 constexpr uint8_t MATRIX_HEIGHT = 9;
 constexpr uint8_t MATRIX_COUNT = 4;
+constexpr uint8_t MOUTH_WIDTH = MATRIX_WIDTH * 2;
 
 // RGB332: three red bits, three green bits, two blue bits per pixel.
 constexpr uint8_t rgb332(uint8_t red, uint8_t green, uint8_t blue) {
@@ -22,6 +23,7 @@ struct MatrixAnimation {
     const char *name;
     const ColorFrame *frames;
     uint8_t frameCount;
+    uint8_t width; // 13 for eyes, 26 for the shared mouth, 0 for universal off.
 };
 
 // Returns a flash address. Read descriptors with memcpy_P, not by dereferencing.

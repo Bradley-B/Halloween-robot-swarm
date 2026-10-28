@@ -124,11 +124,23 @@ Strip animations update without blocking NATS command processing.
 
 ## Matrix animations
 
-The **Matrix animations** form selects a recurring animation for one matrix
-or all four matrices on every connected robot. Each matrix has its own frame
-index and timer, so, for example, matrices 1 and 2 can blink while matrix 3
-talks and matrix 4 shows a static smile. Selecting an animation restarts it at
-its first frame. The form shows settings to send, not live robot state.
+The **Matrix animations** form controls **Both eyes** or the **Whole mouth**
+on every connected robot. Left and right are from the perspective of looking
+at the face:
+
+| Matrix | I2C address | Face part |
+| --- | --- | --- |
+| 1 | `0x30` | Left eye |
+| 2 | `0x31` | Right eye |
+| 3 | `0x32` | Left half of the mouth |
+| 4 | `0x33` | Right half of the mouth |
+
+Each eye is 13×9. The mouth is one continuous 26×9 image split across the two
+adjacent panels. Group commands select an animation and restart both members
+on a shared timeline. Eyes and mouth can run different animations, such as
+blinking eyes with a talking mouth. Individual panel controls remain
+available; each mouth panel always displays its corresponding half of the
+wide image. The form shows settings to send, not live robot state.
 
 | Animation | Behavior |
 | --- | --- |
@@ -138,22 +150,28 @@ its first frame. The form shows settings to send, not live robot state.
 | `smile` | Static orange smile with white teeth |
 | `off` | Black frame, held until changed |
 
-Send `matrix.set` to `robots.commands` to make matrix 3 talk:
+Send `matrix.set` to `robots.commands` to animate the whole mouth:
 
 ```json
 {
   "target": "all",
   "command": "matrix.set",
-  "params": { "matrix": 3, "animation": "talk" }
+  "params": { "matrix": "mouth", "animation": "talk" }
 }
 ```
 
-`params.matrix` must be an integer from 1 to 4, or the string `"all"`.
-Numbers correspond to I2C addresses `0x30`, `0x31`, `0x32`, and `0x33`.
-`target: "all"` broadcasts to robots; `params.matrix` selects the display
-within each robot. Unknown animation names and invalid matrix selectors are
-ignored without changing any selections. Commands switch the built-in
-animations; they do not upload frame pixels or alter frame timing.
+To blink both eyes, use `"params": { "matrix": "eyes", "animation": "blink" }`.
+`params.matrix` accepts `"eyes"`, `"mouth"`, `"all"`, or an integer from 1 to 4.
+`target: "all"` broadcasts to robots; `params.matrix` selects the face part
+within each robot.
+
+Eye targets accept `blink`, `look`, and `off`. Mouth targets accept `talk`,
+`smile`, and `off`. The `"all"` selector accepts `off` to darken the whole
+face. The website filters animation choices for the selected face part.
+Unknown animation names, invalid selectors, and animations incompatible with
+any selected panel are ignored without changing any selections. Commands
+switch the built-in animations; they do not upload frame pixels or alter
+frame timing.
 
 Selections last until changed or the robot restarts. The existing red X and
 green circle remain as startup/connectivity indicators. After a Wi-Fi
@@ -162,8 +180,10 @@ stops animations on all matrices and holds the letter until another command.
 
 ### Adding frames and animations
 
-Edit `firmware/src/frames.cpp`. Every color frame contains exactly 117 bytes:
-13 pixels per row, 9 rows, in row-major order. Pixels use RGB332 (3 red bits,
+Edit `firmware/src/frames.cpp`. Eye frames contain 117 bytes (13×9) and full
+mouth frames contain 234 bytes (26×9), in row-major order. The renderer reads
+mouth columns 0–12 for matrix 3 and 13–25 for matrix 4, without allocating a
+wide framebuffer. Pixels use RGB332 (3 red bits,
 3 green bits, 2 blue bits), giving 256 possible colors. `rgb332(r, g, b)` in
 `frames.h` converts 8-bit channel values to this format. The `K`, `P`, `W`,
 `B`, `C`, and `O` symbols in the starter frames are RGB332 values for
@@ -181,23 +201,28 @@ const ColorFrame customFrames[] PROGMEM = {
 };
 const char customName[] PROGMEM = "custom";
 // Add this entry to animations[]:
-// {customName, customFrames, sizeof(customFrames) / sizeof(ColorFrame)}
+// {customName, customFrames, sizeof(customFrames) / sizeof(ColorFrame), MATRIX_WIDTH}
 ```
 
 Use 1–65535 ms per frame and 1–255 entries per animation. The last entry loops
-back to the first. An animation with one entry holds indefinitely. Add its
-name to the website's animation options and `animationHints` in
-`server/index.html` as well.
+back to the first. An animation with one entry holds indefinitely. The final
+registry field is the source width: `MATRIX_WIDTH` for eyes, `MOUTH_WIDTH` for
+mouths, or 0 for the universal black animation. All frames in an animation
+use that width. Add its name to the website's animation options, set its
+`data-part` to `eyes` or `mouth`, and add a description to `animationHints`
+in `server/index.html` as well.
 
 Pixel arrays can be shared between animations and matrices. The starter set
-has seven unique color frames (819 bytes of pixel data in flash), plus small
+has seven unique color frames (1053 bytes of pixel data in flash), plus small
 flash descriptors. Playback adds only a flash pointer, timestamp, frame index,
 and flag per matrix (about 48 bytes total on ESP8266). Rendering reads pixels
 directly from flash into the driver's existing buffers, without allocating
 additional framebuffers or copying animation sequences into RAM. Only changed
-frames are sent over I2C. Playback uses `millis()` without delays and advances
-at most one frame per loop; a slow update lengthens the hold rather than
-triggering a burst of frames to catch up.
+frames are sent over I2C. Playback uses `millis()` without delays. Group
+members share a start timestamp and retain their scheduled frame boundaries,
+so sequential I2C writes do not accumulate timing drift. If playback stalls,
+it skips expired frames and sends only the current one, keeping grouped
+panels on the same logical frame.
 
 ## Planned robot controls
 

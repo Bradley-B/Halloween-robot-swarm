@@ -5,9 +5,14 @@
 void matrixSetup();
 void matrixLoop();
 
-// Matrix numbers 1–4 map to I2C addresses 0x30–0x33; 0 selects all matrices.
-// Unknown animations or matrix numbers leave every selection unchanged.
-bool matrixSetAnimation(uint8_t matrixNumber, const char *animationName);
+// Left/right are from the perspective of looking at the face.
+enum class MatrixTarget : uint8_t {
+    All = 0, LeftEye = 1, RightEye = 2, LeftMouth = 3, RightMouth = 4,
+    Eyes = 5, Mouth = 6
+};
+
+// Group selections share a clock. Invalid or incompatible selections change nothing.
+bool matrixSetAnimation(MatrixTarget target, const char *animationName);
 
 // Temporary diagnostic display; selected animations resume on matrixLoop().
 void setMonoFrameAll(MonoFrame *frame);

@@ -106,31 +106,32 @@ const uint8_t eyeClosed[] PROGMEM = {
 };
 static_assert(sizeof(eyeClosed) == MATRIX_WIDTH * MATRIX_HEIGHT, "Frame dimensions must be 13x9");
 
+// One continuous 26x9 mouth. Matrix 3 reads columns 0–12, matrix 4 reads 13–25.
 const uint8_t mouthSmile[] PROGMEM = {
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
-  K, O, K, K, K, K, K, K, K, K, K, O, K,
-  K, K, O, W, W, W, W, W, W, W, O, K, K,
-  K, K, K, O, O, O, O, O, O, O, K, K, K,
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, O, O, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, O, O, K, K,
+  K, K, K, K, O, O, W, W, W, W, W, W, W, W, W, W, W, W, W, W, O, O, K, K, K, K,
+  K, K, K, K, K, K, O, O, O, O, O, O, O, O, O, O, O, O, O, O, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
 };
-static_assert(sizeof(mouthSmile) == MATRIX_WIDTH * MATRIX_HEIGHT, "Frame dimensions must be 13x9");
+static_assert(sizeof(mouthSmile) == MOUTH_WIDTH * MATRIX_HEIGHT, "Mouth frame dimensions must be 26x9");
 
 const uint8_t mouthOpen[] PROGMEM = {
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
-  K, K, K, O, O, O, O, O, O, O, K, K, K,
-  K, K, O, W, W, W, W, W, W, W, O, K, K,
-  K, O, K, K, K, K, K, K, K, K, K, O, K,
-  K, O, K, K, P, P, P, P, P, K, K, O, K,
-  K, K, O, P, P, P, P, P, P, P, O, K, K,
-  K, K, K, O, O, O, O, O, O, O, K, K, K,
-  K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
+  K, K, K, K, K, K, O, O, O, O, O, O, O, O, O, O, O, O, O, O, K, K, K, K, K, K,
+  K, K, K, K, O, O, W, W, W, W, W, W, W, W, W, W, W, W, W, W, O, O, K, K, K, K,
+  K, K, O, O, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, O, O, K, K,
+  K, K, O, O, K, K, K, K, P, P, P, P, P, P, P, P, P, P, K, K, K, K, O, O, K, K,
+  K, K, K, K, O, O, P, P, P, P, P, P, P, P, P, P, P, P, P, P, O, O, K, K, K, K,
+  K, K, K, K, K, K, O, O, O, O, O, O, O, O, O, O, O, O, O, O, K, K, K, K, K, K,
+  K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K, K,
 };
-static_assert(sizeof(mouthOpen) == MATRIX_WIDTH * MATRIX_HEIGHT, "Frame dimensions must be 13x9");
+static_assert(sizeof(mouthOpen) == MOUTH_WIDTH * MATRIX_HEIGHT, "Mouth frame dimensions must be 26x9");
 
 // Each entry sets its own hold time. Pixel arrays can be reused in sequences.
 const ColorFrame blinkFrames[] PROGMEM = {
@@ -152,11 +153,11 @@ const char smileName[] PROGMEM = "smile";
 const char offName[] PROGMEM = "off";
 
 const MatrixAnimation animations[] PROGMEM = {
-  {blinkName, blinkFrames, sizeof(blinkFrames) / sizeof(ColorFrame)},
-  {lookName, lookFrames, sizeof(lookFrames) / sizeof(ColorFrame)},
-  {talkName, talkFrames, sizeof(talkFrames) / sizeof(ColorFrame)},
-  {smileName, smileFrames, sizeof(smileFrames) / sizeof(ColorFrame)},
-  {offName, offFrames, sizeof(offFrames) / sizeof(ColorFrame)}
+  {blinkName, blinkFrames, sizeof(blinkFrames) / sizeof(ColorFrame), MATRIX_WIDTH},
+  {lookName, lookFrames, sizeof(lookFrames) / sizeof(ColorFrame), MATRIX_WIDTH},
+  {talkName, talkFrames, sizeof(talkFrames) / sizeof(ColorFrame), MOUTH_WIDTH},
+  {smileName, smileFrames, sizeof(smileFrames) / sizeof(ColorFrame), MOUTH_WIDTH},
+  {offName, offFrames, sizeof(offFrames) / sizeof(ColorFrame), 0}
 };
 } // namespace
 
