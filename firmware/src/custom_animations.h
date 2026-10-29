@@ -161,10 +161,10 @@ const uint8_t custom_2_pixels_3[] PROGMEM = {
   0x00, 0xe0, 0x00, 0x00, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0x00, 0x00, 0x00, 0x00,
 };
 const ColorFrame custom_2_frames[] PROGMEM = {
-  {custom_2_pixels_0, 500},
-  {custom_2_pixels_1, 500},
-  {custom_2_pixels_2, 500},
-  {custom_2_pixels_3, 500},
+  {custom_2_pixels_0, 125},
+  {custom_2_pixels_1, 125},
+  {custom_2_pixels_2, 125},
+  {custom_2_pixels_3, 125},
 };
 const char custom_2_name[] PROGMEM = "spiral_red";
 
