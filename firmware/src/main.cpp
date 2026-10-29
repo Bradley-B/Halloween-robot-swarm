@@ -14,7 +14,7 @@ const char* WIFI_PSK = "";
 WiFiClient client;
 NATS nats(
 	&client,
-	"192.168.0.105", 4223
+	"robot.bradleyboxer.xyz", 4223
 );
 
 void connect_wifi() {

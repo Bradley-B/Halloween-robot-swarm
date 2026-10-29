@@ -65,7 +65,7 @@ void matrixSetup() {
       while (1) yield();
     }
     matrices[i].setLEDscaling(0xFF);
-    matrices[i].setGlobalCurrent(0x10);
+    matrices[i].setGlobalCurrent(0x05);
     matrices[i].enable(true);
   }
   i2c->setClock(800000);

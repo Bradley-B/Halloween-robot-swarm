@@ -40,42 +40,43 @@ constexpr uint8_t W = rgb332(255, 255, 255);
 constexpr uint8_t B = rgb332(0, 73, 255);
 constexpr uint8_t C = rgb332(0, 255, 255);
 constexpr uint8_t O = rgb332(255, 146, 0);
+constexpr uint8_t D = rgb332(0, 0, 0);
 
 const uint8_t eyeCenter[] PROGMEM = {
   K, K, K, K, P, P, P, P, P, K, K, K, K,
-  K, K, P, P, W, W, W, W, W, P, P, K, K,
-  K, P, W, W, W, W, B, W, W, W, W, P, K,
-  P, W, W, W, W, B, B, B, W, W, W, W, P,
-  P, W, W, W, W, B, C, B, W, W, W, W, P,
-  P, W, W, W, W, B, B, B, W, W, W, W, P,
-  K, P, W, W, W, W, B, W, W, W, W, P, K,
-  K, K, P, P, W, W, W, W, W, P, P, K, K,
+  K, K, P, P, D, D, D, D, D, P, P, K, K,
+  K, P, D, D, D, D, B, D, D, D, D, P, K,
+  P, D, D, D, D, B, B, B, D, D, D, D, P,
+  P, D, D, D, D, B, C, B, D, D, D, D, P,
+  P, D, D, D, D, B, B, B, D, D, D, D, P,
+  K, P, D, D, D, D, B, D, D, D, D, P, K,
+  K, K, P, P, D, D, D, D, D, P, P, K, K,
   K, K, K, K, P, P, P, P, P, K, K, K, K,
 };
 static_assert(sizeof(eyeCenter) == MATRIX_WIDTH * MATRIX_HEIGHT, "Frame dimensions must be 13x9");
 
 const uint8_t eyeLeft[] PROGMEM = {
   K, K, K, K, P, P, P, P, P, K, K, K, K,
-  K, K, P, P, W, W, W, W, W, P, P, K, K,
-  K, P, W, B, W, W, W, W, W, W, W, P, K,
-  P, W, B, B, B, W, W, W, W, W, W, W, P,
-  P, W, B, C, B, W, W, W, W, W, W, W, P,
-  P, W, B, B, B, W, W, W, W, W, W, W, P,
-  K, P, W, B, W, W, W, W, W, W, W, P, K,
-  K, K, P, P, W, W, W, W, W, P, P, K, K,
+  K, K, P, P, D, D, D, D, D, P, P, K, K,
+  K, P, D, B, D, D, D, D, D, D, D, P, K,
+  P, D, B, B, B, D, D, D, D, D, D, D, P,
+  P, D, B, C, B, D, D, D, D, D, D, D, P,
+  P, D, B, B, B, D, D, D, D, D, D, D, P,
+  K, P, D, B, D, D, D, D, D, D, D, P, K,
+  K, K, P, P, D, D, D, D, D, P, P, K, K,
   K, K, K, K, P, P, P, P, P, K, K, K, K,
 };
 static_assert(sizeof(eyeLeft) == MATRIX_WIDTH * MATRIX_HEIGHT, "Frame dimensions must be 13x9");
 
 const uint8_t eyeRight[] PROGMEM = {
   K, K, K, K, P, P, P, P, P, K, K, K, K,
-  K, K, P, P, W, W, W, W, W, P, P, K, K,
-  K, P, W, W, W, W, W, W, W, B, W, P, K,
-  P, W, W, W, W, W, W, W, B, B, B, W, P,
-  P, W, W, W, W, W, W, W, B, C, B, W, P,
-  P, W, W, W, W, W, W, W, B, B, B, W, P,
-  K, P, W, W, W, W, W, W, W, B, W, P, K,
-  K, K, P, P, W, W, W, W, W, P, P, K, K,
+  K, K, P, P, D, D, D, D, D, P, P, K, K,
+  K, P, D, D, D, D, D, D, D, B, D, P, K,
+  P, D, D, D, D, D, D, D, B, B, B, D, P,
+  P, D, D, D, D, D, D, D, B, C, B, D, P,
+  P, D, D, D, D, D, D, D, B, B, B, D, P,
+  K, P, D, D, D, D, D, D, D, B, D, P, K,
+  K, K, P, P, D, D, D, D, D, P, P, K, K,
   K, K, K, K, P, P, P, P, P, K, K, K, K,
 };
 static_assert(sizeof(eyeRight) == MATRIX_WIDTH * MATRIX_HEIGHT, "Frame dimensions must be 13x9");
@@ -84,9 +85,9 @@ const uint8_t eyeHalf[] PROGMEM = {
   K, K, K, K, K, K, K, K, K, K, K, K, K,
   K, K, K, K, K, K, K, K, K, K, K, K, K,
   K, K, P, P, P, P, P, P, P, P, P, K, K,
-  K, P, W, W, W, W, B, W, W, W, W, P, K,
-  P, W, W, W, W, B, C, B, W, W, W, W, P,
-  K, P, W, W, W, W, B, W, W, W, W, P, K,
+  K, P, D, D, D, D, B, D, D, D, D, P, K,
+  P, D, D, D, D, B, C, B, D, D, D, D, P,
+  K, P, D, D, D, D, B, D, D, D, D, P, K,
   K, K, P, P, P, P, P, P, P, P, P, K, K,
   K, K, K, K, K, K, K, K, K, K, K, K, K,
   K, K, K, K, K, K, K, K, K, K, K, K, K,

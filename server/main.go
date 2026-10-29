@@ -46,7 +46,7 @@ func run(ctx context.Context) error {
 	defer publisher.Close()
 
 	server := &http.Server{
-		Addr:              "0.0.0.0:8095",
+		Addr:              "0.0.0.0:80",
 		Handler:           newHandler(publisher),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -60,7 +60,7 @@ func run(ctx context.Context) error {
 	go func() {
 		errorsCh <- server.Serve(listener)
 	}()
-	log.Println("HTTP server running at http://0.0.0.0:8095")
+	log.Println("HTTP server running at http://0.0.0.0:80")
 
 	select {
 	case err := <-errorsCh:
